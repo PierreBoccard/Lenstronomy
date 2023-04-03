@@ -15,9 +15,8 @@ class LensModel(object):
 
     def __init__(self, lens_model_list, z_lens=None, z_source=None, lens_redshift_list=None, cosmo=None,
                  multi_plane=False, numerical_alpha_class=None, observed_convention_index=None,
-                 z_source_convention=None, cosmo_interp=False,
-                 z_interp_stop=None, num_z_interp=100,
-                 kwargs_interp=None):
+                 z_source_convention=None, cosmo_interp=False, z_interp_stop=None, num_z_interp=100,
+                 kwargs_interp=None, distance_ratio_sampling=False):
         """
 
         :param lens_model_list: list of strings with lens model names
@@ -43,7 +42,9 @@ class LensModel(object):
         :param z_interp_stop: (only in multi-plane with cosmo_interp=True); maximum redshift for distance interpolation
          This number should be higher or equal the maximum of the source redshift and/or the z_source_convention
         :param num_z_interp: (only in multi-plane with cosmo_interp=True); number of redshift bins for interpolating
-         distances
+        distances
+        :param distance_ratio_sampling: bool, if True, will use sampled
+        distance ratios to update T_ij value in multi-lens plane computation.
         """
         self.lens_model_list = lens_model_list
         self.z_lens = z_lens
@@ -80,7 +81,8 @@ class LensModel(object):
                                          observed_convention_index=observed_convention_index,
                                          z_source_convention=z_source_convention, cosmo_interp=cosmo_interp,
                                          z_interp_stop=z_interp_stop, num_z_interp=num_z_interp,
-                                         kwargs_interp=kwargs_interp)
+                                         kwargs_interp=kwargs_interp,
+                                         distance_ratio_sampling=distance_ratio_sampling)
         else:
             if los_effects is True:
                 self.lens_model = SinglePlaneLOS(lens_model_list,

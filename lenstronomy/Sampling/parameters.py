@@ -178,6 +178,8 @@ class Param(object):
         :param solver_type: string, option for specific solver type
          see detailed instruction of the Solver4Point and Solver2Point classes
         :param Ddt_sampling: bool, if True, samples the time-delay distance D_dt (in units of Mpc)
+        # :param distance_ratio_sampling: bool, if True, samples the distance ratios in multi-lens-plane,
+        # will override redshift sampling through  `lens_redshift_sampling_indexes` and `source_redshift_sampling_indexes`
         :param source_size: bool, if True, samples a source size parameters to be evaluated in the flux ratio likelihood
         :param num_tau0: integer, number of different optical depth re-normalization factors
         :param lens_redshift_sampling_indexes: list of integers corresponding to the lens model components whose redshifts
@@ -202,6 +204,11 @@ class Param(object):
         self._optical_depth_model_list = kwargs_model.get('optical_depth_model_list', [])
         self._kwargs_model = kwargs_model
 
+        if 'distance_ratio_sampling' in self._kwargs_model:
+            distance_ratio_sampling = self._kwargs_model['distance_ratio_sampling']
+        else:
+            distance_ratio_sampling = None
+
         # check how many redshifts need to be sampled
         num_z_sampling = 0
         if lens_redshift_sampling_indexes is not None:
@@ -210,6 +217,9 @@ class Param(object):
             num_z_source = int(np.max(source_redshift_sampling_indexes) + 1)
             num_z_sampling = max(num_z_sampling, num_z_source)
         self._num_z_sampling, self._lens_redshift_sampling_indexes, self._source_redshift_sampling_indexes = num_z_sampling, lens_redshift_sampling_indexes, source_redshift_sampling_indexes
+
+        # check how many lens planes
+        num_lens_planes = len(list(set(self._lens_redshift_list)))
 
         self._lens_model_class, self._source_model_class, _, _, _ = class_creator.create_class_instances(all_models=True, **kwargs_model)
         self._image2SourceMapping = Image2SourceMapping(lensModel=self._lens_model_class,
@@ -326,7 +336,8 @@ class Param(object):
                                            kwargs_lower=kwargs_lower_extinction, kwargs_upper=kwargs_upper_extinction,
                                            linear_solver=False)
         self.specialParams = SpecialParam(Ddt_sampling=Ddt_sampling, mass_scaling=self._mass_scaling,
-                                          general_scaling_params=self._general_scaling_masks,
+                                          distance_ratio_sampling=distance_ratio_sampling,
+                                          num_lens_planes=num_lens_planes,
                                           kwargs_fixed=kwargs_fixed_special, num_scale_factor=self._num_scale_factor,
                                           kwargs_lower=kwargs_lower_special, kwargs_upper=kwargs_upper_special,
                                           point_source_offset=self._point_source_offset, num_images=self._num_images,
@@ -479,7 +490,8 @@ class Param(object):
         num += self.pointSourceParams.num_param_linear()
         return num
 
-    def image2source_plane(self, kwargs_source, kwargs_lens, image_plane=False):
+    def image2source_plane(self, kwargs_source, kwargs_lens,
+                           kwargs_special=None, image_plane=False):
         """
         maps the image plane position definition of the source plane
 
@@ -493,14 +505,16 @@ class Param(object):
             if self._image_plane_source_list[i] is True and not image_plane:
                 if 'center_x' in kwargs:
                     x_mapped, y_mapped = self._image2SourceMapping.image2source(kwargs['center_x'], kwargs['center_y'],
-                                                                                kwargs_lens, index_source=i)
+                                                                                kwargs_lens, index_source=i,
+                                                                                kwargs_special=kwargs_special)
                     kwargs['center_x'] = x_mapped
                     kwargs['center_y'] = y_mapped
         return kwargs_source_copy
 
-    def _update_source_joint_with_point_source(self, kwargs_lens_list, kwargs_source_list, kwargs_ps, kwargs_special,
-                                               image_plane=False):
-        kwargs_source_list = self.image2source_plane(kwargs_source_list, kwargs_lens_list, image_plane=image_plane)
+    def _update_source_joint_with_point_source(self, kwargs_lens_list, kwargs_source_list, kwargs_ps, kwargs_special, image_plane=False):
+        kwargs_source_list = self.image2source_plane(kwargs_source_list,
+                                                     kwargs_lens_list,
+                                                     image_plane=image_plane, kwargs_special=kwargs_special)
 
         for setting in self._joint_source_with_point_source:
             i_point_source, k_source, param_list = setting
@@ -511,7 +525,8 @@ class Param(object):
                 x_pos, y_pos = kwargs_ps[i_point_source]['ra_image'], kwargs_ps[i_point_source]['dec_image']
                 # x_pos, y_pos = self.real_image_positions(x_pos, y_pos, kwargs_special)
                 x_mapped, y_mapped = self._image2SourceMapping.image2source(x_pos, y_pos, kwargs_lens_list,
-                                                                            index_source=k_source)
+                                                                            index_source=k_source,
+                                                                            kwargs_special=kwargs_special)
             for param_name in param_list:
                 if param_name == 'center_x':
                     kwargs_source_list[k_source][param_name] = np.mean(x_mapped)

@@ -17,6 +17,7 @@ class ModelPlot(object):
     of the output of the FittingSequence results.
 
     """
+
     def __init__(self, multi_band_list, kwargs_model, kwargs_params, image_likelihood_mask_list=None,
                  bands_compute=None, multi_band_type='multi-linear', source_marg=False, linear_prior=None,
                  arrow_size=0.02, cmap_string="gist_heat", fast_caustic=True, linear_solver=True):
@@ -63,6 +64,7 @@ class ModelPlot(object):
             # overwrite model with initial input without linear solver applied
             model[0] = im_sim.image(**kwargs_params)
             # retrieve amplitude parameters directly from kwargs_list
+
             param[0] = im_sim.linear_param_from_kwargs(kwargs_params['kwargs_source'], kwargs_params['kwargs_lens_light'],
                                                        kwargs_params['kwargs_ps'])
         else:
@@ -101,18 +103,6 @@ class ModelPlot(object):
             else:
                 self._index_list.append(-1)
             index += 1
-
-    def _select_band(self, band_index):
-        """
-
-        :param band_index: index of imaging band to be plotted
-        :return: bandplot() instance of selected band, raises when band is not computed
-        """
-        i = self._index_list[band_index]
-        if i == -1:
-            raise ValueError("band %s is not computed or out of range." % band_index)
-        i = int(i)
-        return self._band_plot_list[i]
 
     def reconstruction_all_bands(self, **kwargs):
         """

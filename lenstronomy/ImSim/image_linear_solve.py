@@ -234,7 +234,6 @@ class ImageLinearFit(ImageModel):
                                                                               inv_bool=source_marg)
         # compute X^2
         logL = self.Data.log_likelihood(im_sim, self.likelihood_mask, model_error)
-
         if self._pixelbased_bool is False:
             if cov_matrix is not None and source_marg:
                 marg_const = de_lens.marginalization_new(cov_matrix, d_prior=linear_prior)
@@ -284,7 +283,7 @@ class ImageLinearFit(ImageModel):
         """
         x_grid, y_grid = self.ImageNumerics.coordinates_evaluate
         source_light_response, n_source = self.source_mapping.image_flux_split(x_grid, y_grid, kwargs_lens,
-                                                                               kwargs_source)
+                                                                               kwargs_source, kwargs_special)
         extinction = self._extinction.extinction(x_grid, y_grid, kwargs_extinction=kwargs_extinction,
                                                  kwargs_special=kwargs_special)
         lens_light_response, n_lens_light = self.LensLightModel.functions_split(x_grid, y_grid, kwargs_lens_light)
